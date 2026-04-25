@@ -21,6 +21,7 @@ class User(Base):
     preferences = relationship("UserPreferences", back_populates="user", uselist=False)
     tasks = relationship("Task", back_populates="user")
     sessions = relationship("StudySession", back_populates="user")
+    habits = relationship("Habit", back_populates="user")
 
 class UserPreferences(Base):
     __tablename__ = "user_preferences"
@@ -61,3 +62,13 @@ class StudySession(Base):
     focus_mode = Column(String, default="Deep Work")
     
     user = relationship("User", back_populates="sessions")
+
+class Habit(Base):
+    __tablename__ = "habits"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String)
+    streak = Column(Integer, default=0)
+    last_completed = Column(DateTime, nullable=True)
+    
+    user = relationship("User", back_populates="habits")

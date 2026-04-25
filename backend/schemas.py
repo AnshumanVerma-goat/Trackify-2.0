@@ -70,3 +70,17 @@ class StudySession(StudySessionBase):
     start_time: datetime
     class Config:
         from_attributes = True
+
+class HabitBase(BaseModel):
+    title: str
+
+class HabitCreate(HabitBase):
+    pass
+
+class Habit(HabitBase):
+    id: int
+    user_id: int
+    streak: int
+    last_completed: Optional[datetime] = None
+    class Config:
+        from_attributes = True

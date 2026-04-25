@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, Sparkles } from 'lucide-react';
 import api from '../api';
 
 export default function AIChat() {
@@ -12,20 +12,26 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const suggestions = [
+    "What should I do next?",
+    "Give me a study tip",
+    "Summarize my day"
+  ];
+
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen, loading]);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    const newMsg = { sender: 'user' as const, text: input };
+  const sendMessage = async (textToSend: string = input) => {
+    if (!textToSend.trim()) return;
+    const newMsg = { sender: 'user' as const, text: textToSend };
     setMessages(prev => [...prev, newMsg]);
     setInput('');
     setLoading(true);
     try {
-      const res = await api.post('/ai/chat', { message: input });
+      const res = await api.post('/ai/chat', { message: textToSend });
       setMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
     } catch (err) {
       setMessages(prev => [...prev, { sender: 'ai', text: 'Sorry, I am having trouble connecting.' }]);
@@ -43,7 +49,7 @@ export default function AIChat() {
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(99,102,241,0.5)] z-50 transition-all ${isOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}
       >
-        <MessageSquare size={24} />
+        <Sparkles size={24} className="animate-pulse" />
       </motion.button>
 
       {/* Chat Panel */}
@@ -57,25 +63,29 @@ export default function AIChat() {
             className="fixed bottom-6 right-6 w-[380px] h-[600px] glass-panel rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] z-50 flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-white/5">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+            <div className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-white/5 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10" />
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-[0_0_10px_rgba(99,102,241,0.5)]">
                   <Bot size={16} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-white">Trackify AI</h3>
+                  <h3 className="font-semibold text-sm text-white flex items-center gap-2">
+                    Trackify AI
+                    <Sparkles size={12} className="text-indigo-400" />
+                  </h3>
                   <span className="text-[10px] text-indigo-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block animate-pulse"></span> Online
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block animate-pulse"></span> Context-Aware
                   </span>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5">
+              <button onClick={() => setIsOpen(false)} className="relative z-10 text-slate-400 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5">
                 <X size={20} />
               </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-black/20">
               {messages.map((m, i) => (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
@@ -83,44 +93,64 @@ export default function AIChat() {
                   key={i} 
                   className={`flex gap-3 ${m.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${m.sender === 'user' ? 'bg-slate-800 border border-white/10' : 'bg-gradient-to-br from-indigo-500 to-purple-500'}`}>
+                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center shadow-lg ${m.sender === 'user' ? 'bg-slate-800 border border-white/10' : 'bg-gradient-to-br from-indigo-500 to-purple-500'}`}>
                     {m.sender === 'user' ? <User size={14} className="text-slate-400" /> : <Bot size={14} className="text-white" />}
                   </div>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${m.sender === 'user' ? 'bg-indigo-500 text-white rounded-tr-none shadow-lg' : 'bg-white/5 border border-white/5 text-slate-200 rounded-tl-none shadow-lg'}`}>
-                    {m.text}
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-lg ${m.sender === 'user' ? 'bg-indigo-500 text-white rounded-tr-none' : 'bg-white/10 border border-white/5 text-slate-200 rounded-tl-none backdrop-blur-md'}`}>
+                    {m.text.split('\n').map((line, idx) => (
+                      <span key={idx}>
+                        {line}
+                        <br />
+                      </span>
+                    ))}
                   </div>
                 </motion.div>
               ))}
               {loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500">
+                  <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg">
                     <Bot size={14} className="text-white" />
                   </div>
-                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-white/5 border border-white/5 text-slate-200 rounded-tl-none flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-white/10 border border-white/5 text-slate-200 rounded-tl-none flex items-center gap-1 backdrop-blur-md shadow-lg">
+                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                   </div>
                 </motion.div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <div className="p-4 border-t border-white/5 bg-white/5">
+            {/* Input & Suggestions */}
+            <div className="p-4 border-t border-white/5 bg-white/5 flex flex-col gap-3">
+              {/* Suggestion Chips */}
+              {messages.length < 3 && !loading && (
+                <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                  {suggestions.map((s, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => sendMessage(s)}
+                      className="whitespace-nowrap px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-indigo-300 hover:bg-white/10 hover:text-indigo-200 transition-colors shadow-sm"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
               <div className="relative">
                 <input 
                   type="text" 
                   value={input} 
                   onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                  onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
                   placeholder="Message Trackify AI..."
                   className="w-full bg-[#030712] border border-white/10 rounded-full pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
                 />
                 <button 
-                  onClick={sendMessage}
+                  onClick={() => sendMessage(input)}
                   disabled={!input.trim() || loading}
-                  className="absolute right-1 top-1 bottom-1 w-10 flex items-center justify-center rounded-full bg-indigo-500 text-white disabled:opacity-50 disabled:bg-slate-700 transition-all hover:bg-indigo-400"
+                  className="absolute right-1 top-1 bottom-1 w-10 flex items-center justify-center rounded-full bg-indigo-500 text-white disabled:opacity-50 disabled:bg-slate-700 transition-all hover:bg-indigo-400 shadow-md"
                 >
                   <Send size={16} className="ml-1" />
                 </button>

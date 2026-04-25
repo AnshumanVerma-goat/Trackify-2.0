@@ -59,3 +59,13 @@ def calculate_productivity_score(user, tasks, sessions) -> int:
     score += min(int((total_mins / 120) * 10), 10)
     
     return min(100, max(0, score))
+def generate_fallback_study_plan(user_data=None):
+    return {
+        "plan": [
+            "Study your core subjects for 2 hours",
+            "Use Deep Work sessions (50 min focus + 10 min break)",
+            "Revise weak topics",
+            "Practice active recall",
+        ],
+        "message": "Fallback study plan (AI not available)"
+    }

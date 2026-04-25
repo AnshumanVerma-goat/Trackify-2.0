@@ -5,7 +5,7 @@ from datetime import timedelta
 import models, schemas, auth, ai
 from database import engine, get_db
 from pydantic import BaseModel
-from insights_engine import calculate_productivity_score
+from insights_engine import calculate_productivity_score, generate_fallback_study_plan
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -85,15 +85,25 @@ def onboard_user(prefs: schemas.UserPreferencesCreate, db: Session = Depends(get
     db_pref.subjects = prefs.subjects
     db_pref.preferred_time = prefs.preferred_time
     db_pref.productivity_style = prefs.productivity_style
-    
-    # Generate study plan using Gemini
-    plan = ai.generate_study_plan(
-        goals="Get better grades", # Could take from prefs if added
-        hours=prefs.study_hours,
-        subjects=prefs.subjects,
-        pref_time=prefs.preferred_time,
-        style=prefs.productivity_style
-    )
+
+    try:
+        # Attempt to generate study plan using Gemini API
+        plan = ai.generate_study_plan(
+            goals="Get better grades", # Could take from prefs if added
+            hours=prefs.study_hours,
+            subjects=prefs.subjects,
+            pref_time=prefs.preferred_time,
+            style=prefs.productivity_style
+        )
+    except Exception as e:
+        # Fallback to local generation if Gemini API fails
+        plan = generate_fallback_study_plan(
+            hours=prefs.study_hours,
+            subjects=prefs.subjects,
+            pref_time=prefs.preferred_time,
+            style=prefs.productivity_style
+        )
+
     db_pref.study_plan = plan
     db.commit()
     db.refresh(db_pref)
@@ -218,8 +228,75 @@ class ChatRequest(BaseModel):
 
 @app.post("/ai/chat")
 def chat(req: ChatRequest, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    # Simple context injection
     pref = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == current_user.id).first()
-    context = f"User studies {pref.subjects if pref else 'general subjects'}."
+    
+    sessions = db.query(models.StudySession).filter(models.StudySession.user_id == current_user.id).order_by(models.StudySession.start_time.desc()).limit(3).all()
+    session_info = ", ".join([f"{s.duration_minutes}m of {s.subject} ({s.focus_mode})" for s in sessions]) if sessions else "No recent sessions"
+
+    tasks = db.query(models.Task).filter(models.Task.user_id == current_user.id, models.Task.status != "completed").limit(5).all()
+    task_info = ", ".join([t.title for t in tasks]) if tasks else "No pending tasks"
+
+    context = (f"User studies {pref.subjects if pref else 'general subjects'}. "
+               f"Recent sessions: {session_info}. "
+               f"Pending tasks: {task_info}. "
+               f"Current XP: {current_user.xp}, Level: {current_user.level}, Streak: {current_user.streak} days.")
+    
     reply = ai.chat_with_assistant(req.message, context)
     return {"reply": reply}
+
+@app.get("/ai/daily-plan")
+def get_daily_plan(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    pref = db.query(models.UserPreferences).filter(models.UserPreferences.user_id == current_user.id).first()
+    tasks = db.query(models.Task).filter(models.Task.user_id == current_user.id, models.Task.status != "completed").all()
+    
+    task_data = [{"title": t.title, "subject": t.subject_tag, "estimated_minutes": t.estimated_minutes} for t in tasks]
+    
+    plan = ai.generate_daily_plan(
+        task_data,
+        pref.study_hours if pref else 2.0,
+        pref.preferred_time if pref else "evening",
+        pref.productivity_style if pref else "pomodoro"
+    )
+    return {"plan": plan}
+
+@app.get("/habits", response_model=list[schemas.Habit])
+def get_habits(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return db.query(models.Habit).filter(models.Habit.user_id == current_user.id).all()
+
+@app.post("/habits", response_model=schemas.Habit)
+def create_habit(habit: schemas.HabitCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    new_habit = models.Habit(title=habit.title, user_id=current_user.id)
+    db.add(new_habit)
+    db.commit()
+    db.refresh(new_habit)
+    return new_habit
+
+@app.put("/habits/{habit_id}/complete", response_model=schemas.Habit)
+def complete_habit(habit_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    habit = db.query(models.Habit).filter(models.Habit.id == habit_id, models.Habit.user_id == current_user.id).first()
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+    
+    import datetime
+    now = datetime.datetime.utcnow()
+    
+    if habit.last_completed:
+        delta = now.date() - habit.last_completed.date()
+        if delta.days == 1:
+            habit.streak += 1
+        elif delta.days > 1:
+            habit.streak = 1 # Reset if missed a day
+    else:
+        habit.streak = 1
+        
+    habit.last_completed = now
+    
+    # Give some XP for habit completion
+    current_user.xp += 10
+    while current_user.xp >= current_user.level * 100:
+        current_user.xp -= current_user.level * 100
+        current_user.level += 1
+        
+    db.commit()
+    db.refresh(habit)
+    return habit

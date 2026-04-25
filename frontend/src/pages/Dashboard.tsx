@@ -10,6 +10,7 @@ import AIChat from '../components/AIChat';
 import { Sparkles, TrendingUp, Flame } from 'lucide-react';
 import ProductivityMeter from '../components/ProductivityMeter';
 import DailyPlan from '../components/DailyPlan';
+import HabitTracker from '../components/HabitTracker';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -101,44 +102,42 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Focus Timer */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="md:col-span-5 glass-panel rounded-3xl p-6"
-        >
-          <FocusTimer />
-        </motion.div>
-
-        {/* Task Manager */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="md:col-span-7 glass-panel rounded-3xl p-6"
-        >
-          <Tasks />
-        </motion.div>
+        <div className="md:col-span-6 grid grid-rows-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="glass-panel rounded-3xl p-6"
+          >
+            <FocusTimer />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+            className="glass-panel rounded-3xl p-6"
+          >
+            <Tasks />
+          </motion.div>
+        </div>
 
         {/* Weekly Chart & Analytics Preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="md:col-span-12 glass-panel rounded-3xl p-6"
-        >
-          <Stats />
-        </motion.div>
-
-        {/* Productivity Meter */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-          className="md:col-span-6 glass-panel rounded-3xl p-6"
-        >
-          <ProductivityMeter />
-        </motion.div>
-
-        {/* Daily Plan */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-          className="md:col-span-6 glass-panel rounded-3xl p-6"
-        >
-          <DailyPlan />
-        </motion.div>
+        <div className="md:col-span-6 grid grid-rows-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="glass-panel rounded-3xl p-6"
+          >
+            <Stats />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+            className="glass-panel rounded-3xl p-6"
+          >
+            <HabitTracker />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+            className="glass-panel rounded-3xl p-6"
+          >
+            <DailyPlan />
+          </motion.div>
+        </div>
       </div>
 
       {/* Floating AI Assistant */}

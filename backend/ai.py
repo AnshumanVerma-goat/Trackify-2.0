@@ -77,7 +77,6 @@ def prioritize_tasks(tasks_data: list) -> list:
         """
         response = model.generate_content(prompt)
         try:
-            # Strip markdown if present
             text = response.text.strip()
             if text.startswith("```json"):
                 text = text[7:-3]
@@ -88,3 +87,23 @@ def prioritize_tasks(tasks_data: list) -> list:
             return []
     except Exception as e:
         return []
+
+def generate_daily_plan(tasks_data: list, hours: float, pref_time: str, style: str) -> str:
+    if not GEMINI_API_KEY:
+        # Simple fallback
+        plan = []
+        for t in tasks_data:
+            plan.append(f"- {t.get('estimated_minutes', 30)}m: {t.get('title', 'Task')}")
+        return "\n".join(plan) if plan else "No tasks scheduled for today."
+    try:
+        model = genai.GenerativeModel(MODEL_NAME)
+        prompt = f"""
+        Act as an expert student productivity AI.
+        Generate a highly specific schedule for today based on these pending tasks: {json.dumps(tasks_data)}
+        The student has {hours} hours available, prefers studying in the {pref_time}, and uses the {style} style.
+        Provide a timeline in the format "- HH:MM AM/PM: Task Description" where the tasks are broken down into time blocks. Keep it concise. Don't add extra fluff.
+        """
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return "Failed to generate daily plan."
