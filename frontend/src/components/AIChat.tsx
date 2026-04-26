@@ -1,22 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Bot, User, Sparkles } from 'lucide-react';
+import { X, Send, Bot, User, Sparkles } from 'lucide-react';
 import api from '../api';
 
 export default function AIChat() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{sender: 'user'|'ai', text: string}[]>([
+  const [messages, setMessages] = useState<{ sender: 'user' | 'ai', text: string }[]>([
     { sender: 'ai', text: 'Hi! I am Trackify AI. How can I help you study today?' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const suggestions = [
-    "What should I do next?",
-    "Give me a study tip",
-    "Summarize my day"
-  ];
 
   useEffect(() => {
     if (isOpen) {
@@ -24,17 +18,44 @@ export default function AIChat() {
     }
   }, [messages, isOpen, loading]);
 
+  // ✅ FIXED FUNCTION
   const sendMessage = async (textToSend: string = input) => {
     if (!textToSend.trim()) return;
+
     const newMsg = { sender: 'user' as const, text: textToSend };
     setMessages(prev => [...prev, newMsg]);
     setInput('');
     setLoading(true);
+
     try {
       const res = await api.post('/ai/chat', { message: textToSend });
-      setMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
+
+      // 🔥 Debug log (very important)
+      console.log("AI RESPONSE:", res.data);
+
+      // ✅ Flexible response parsing (handles ANY backend format)
+      const botReply =
+        res.data?.reply ||
+        res.data?.response ||
+        res.data?.message ||
+        res.data?.text ||
+        "Hmm… I couldn't generate a response.";
+
+      setMessages(prev => [
+        ...prev,
+        { sender: 'ai', text: botReply }
+      ]);
+
     } catch (err) {
-      setMessages(prev => [...prev, { sender: 'ai', text: 'Sorry, I am having trouble connecting.' }]);
+      console.error("AI ERROR:", err);
+
+      setMessages(prev => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: "⚠️ AI is reachable but something went wrong."
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -87,10 +108,10 @@ export default function AIChat() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-black/20">
               {messages.map((m, i) => (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  key={i} 
+                  key={i}
                   className={`flex gap-3 ${m.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center shadow-lg ${m.sender === 'user' ? 'bg-slate-800 border border-white/10' : 'bg-gradient-to-br from-indigo-500 to-purple-500'}`}>
@@ -106,53 +127,40 @@ export default function AIChat() {
                   </div>
                 </motion.div>
               ))}
+
               {loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500">
                     <Bot size={14} className="text-white" />
                   </div>
-                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-white/10 border border-white/5 text-slate-200 rounded-tl-none flex items-center gap-1 backdrop-blur-md shadow-lg">
-                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
+                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-150"></div>
+                    <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-300"></div>
                   </div>
                 </motion.div>
               )}
+
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input & Suggestions */}
-            <div className="p-4 border-t border-white/5 bg-white/5 flex flex-col gap-3">
-              {/* Suggestion Chips */}
-              {messages.length < 3 && !loading && (
-                <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
-                  {suggestions.map((s, i) => (
-                    <button 
-                      key={i} 
-                      onClick={() => sendMessage(s)}
-                      className="whitespace-nowrap px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-indigo-300 hover:bg-white/10 hover:text-indigo-200 transition-colors shadow-sm"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-              
+            {/* Input */}
+            <div className="p-4 border-t border-white/5 bg-white/5">
               <div className="relative">
-                <input 
-                  type="text" 
-                  value={input} 
+                <input
+                  type="text"
+                  value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
                   placeholder="Message Trackify AI..."
-                  className="w-full bg-[#030712] border border-white/10 rounded-full pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+                  className="w-full bg-[#030712] border border-white/10 rounded-full pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
-                <button 
+                <button
                   onClick={() => sendMessage(input)}
                   disabled={!input.trim() || loading}
-                  className="absolute right-1 top-1 bottom-1 w-10 flex items-center justify-center rounded-full bg-indigo-500 text-white disabled:opacity-50 disabled:bg-slate-700 transition-all hover:bg-indigo-400 shadow-md"
+                  className="absolute right-1 top-1 bottom-1 w-10 flex items-center justify-center rounded-full bg-indigo-500 text-white disabled:opacity-50"
                 >
-                  <Send size={16} className="ml-1" />
+                  <Send size={16} />
                 </button>
               </div>
             </div>

@@ -63,9 +63,16 @@ def generate_fallback_study_plan(user_data=None):
     return {
         "plan": [
             "Study your core subjects for 2 hours",
-            "Use Deep Work sessions (50 min focus + 10 min break)",
+            "Use Deep Work sessions",
             "Revise weak topics",
-            "Practice active recall",
-        ],
-        "message": "Fallback study plan (AI not available)"
+        ]
     }
+
+def generate_fallback_micro_insight(sessions_data: list, tasks_data: list) -> str:
+    if sessions_data and sum([s.get('duration', 0) for s in sessions_data]) > 60:
+        return "You're consistently putting in solid study time!"
+    if tasks_data and len([t for t in tasks_data if t.get('status') == 'completed']) > 0:
+        return "Great job checking off those tasks!"
+    return "Consistency is the key to mastering your subjects."
+def fallback_ai_response(message: str):
+    return "I'm your local study assistant! Log a session or add a task to get started."

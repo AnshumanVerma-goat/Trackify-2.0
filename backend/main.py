@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -6,8 +7,10 @@ import models, schemas, auth, ai
 from database import engine, get_db
 from pydantic import BaseModel
 from insights_engine import calculate_productivity_score, generate_fallback_study_plan
-
 models.Base.metadata.create_all(bind=engine)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Trackify API")
 
@@ -179,7 +182,7 @@ def get_ai_insights(db: Session = Depends(get_db), current_user: models.User = D
     task_data = [{"title": t.title, "status": t.status} for t in tasks]
     
     insights = ai.generate_insights(session_data, task_data, current_user.streak)
-    return {"insights": insights}
+    return {"success": True, "data": {"insights": insights}, "message": "Insights generated successfully"}
 
 @app.get("/user/analytics")
 def get_analytics(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
@@ -221,7 +224,10 @@ def prioritize_tasks(db: Session = Depends(get_db), current_user: models.User = 
                 db_task.ai_priority_score = score
     
     db.commit()
-    return {"message": "Tasks prioritized successfully"}
+    return {"success": True, "data": None, "message": "Tasks prioritized successfully"}
+
+from ai import ask_gemini
+from insights_engine import fallback_ai_response
 
 class ChatRequest(BaseModel):
     message: str
@@ -236,13 +242,31 @@ def chat(req: ChatRequest, db: Session = Depends(get_db), current_user: models.U
     tasks = db.query(models.Task).filter(models.Task.user_id == current_user.id, models.Task.status != "completed").limit(5).all()
     task_info = ", ".join([t.title for t in tasks]) if tasks else "No pending tasks"
 
-    context = (f"User studies {pref.subjects if pref else 'general subjects'}. "
-               f"Recent sessions: {session_info}. "
-               f"Pending tasks: {task_info}. "
-               f"Current XP: {current_user.xp}, Level: {current_user.level}, Streak: {current_user.streak} days.")
+    prompt = f"""
+    You are Trackify, a highly advanced premium AI study assistant.
+    User Profile:
+    - Subjects: {pref.subjects if pref else 'general subjects'}
+    - Recent sessions: {session_info}
+    - Pending tasks: {task_info}
+    - Stats: {current_user.xp} XP, Level {current_user.level}, Streak {current_user.streak} days
     
-    reply = ai.chat_with_assistant(req.message, context)
-    return {"reply": reply}
+    Student says: {req.message}
+    
+    Reply concisely, helpfully, and with a modern, professional tone.
+    """
+    
+    logger.info(f"Received chat request from user {current_user.email}: {req.message}")
+    try:
+        response = ask_gemini(prompt)
+        if not response:
+            logger.warning("Gemini returned no response, using fallback.")
+            response = fallback_ai_response(req.message)
+    except Exception as e:
+        logger.error(f"Error calling Gemini: {e}")
+        response = fallback_ai_response(req.message)
+        
+    logger.info(f"Sending response: {response}")
+    return {"response": response}
 
 @app.get("/ai/daily-plan")
 def get_daily_plan(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
@@ -257,11 +281,67 @@ def get_daily_plan(db: Session = Depends(get_db), current_user: models.User = De
         pref.preferred_time if pref else "evening",
         pref.productivity_style if pref else "pomodoro"
     )
-    return {"plan": plan}
+    return {"success": True, "data": {"plan": plan}, "message": "Daily plan generated"}
+
+@app.get("/ai/study-recommendation")
+def study_recommendation(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    tasks = db.query(models.Task).filter(models.Task.user_id == current_user.id, models.Task.status != "completed").limit(5).all()
+    sessions = db.query(models.StudySession).filter(models.StudySession.user_id == current_user.id).order_by(models.StudySession.start_time.desc()).limit(3).all()
+    
+    task_data = [{"title": t.title, "subject": t.subject_tag, "estimated_minutes": t.estimated_minutes} for t in tasks]
+    session_data = [{"subject": s.subject, "duration": s.duration_minutes, "focus": s.focus_score} for s in sessions]
+    
+    goals = f"Daily: {current_user.daily_goal_hours}h, Weekly: {current_user.weekly_goal_hours}h"
+    
+    recommendation = ai.get_study_recommendation(task_data, goals, session_data)
+    return {"success": True, "data": {"recommendation": recommendation}, "message": "Recommendation generated"}
+
+@app.get("/ai/micro-insight")
+def get_micro_insight(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    sessions = db.query(models.StudySession).filter(models.StudySession.user_id == current_user.id).order_by(models.StudySession.start_time.desc()).limit(5).all()
+    tasks = db.query(models.Task).filter(models.Task.user_id == current_user.id).limit(5).all()
+    
+    session_data = [{"duration": s.duration_minutes, "focus": s.focus_score} for s in sessions]
+    task_data = [{"status": t.status} for t in tasks]
+    
+    insight = ai.generate_micro_insight(session_data, task_data)
+    return {"success": True, "data": {"insight": insight}, "message": "Micro insight generated"}
 
 @app.get("/habits", response_model=list[schemas.Habit])
 def get_habits(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     return db.query(models.Habit).filter(models.Habit.user_id == current_user.id).all()
+
+@app.get("/addictions", response_model=list[schemas.Addiction])
+def get_addictions(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return db.query(models.Addiction).filter(models.Addiction.user_id == current_user.id).all()
+
+@app.post("/addictions", response_model=schemas.Addiction)
+def create_addiction(addiction: schemas.AddictionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_addiction = models.Addiction(**addiction.dict(), user_id=current_user.id)
+    db.add(db_addiction)
+    db.commit()
+    db.refresh(db_addiction)
+    return db_addiction
+
+@app.put("/addictions/{addiction_id}/relapse")
+def relapse_addiction(addiction_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_addiction = db.query(models.Addiction).filter(models.Addiction.id == addiction_id, models.Addiction.user_id == current_user.id).first()
+    if db_addiction:
+        db_addiction.current_streak = 0
+        db_addiction.last_relapse = datetime.utcnow()
+        db.commit()
+    return {"status": "relapsed"}
+
+@app.put("/addictions/{addiction_id}/increment_streak")
+def increment_addiction_streak(addiction_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_addiction = db.query(models.Addiction).filter(models.Addiction.id == addiction_id, models.Addiction.user_id == current_user.id).first()
+    if db_addiction:
+        # A simple endpoint to manually increase streak if a day passes, 
+        # normally you'd do this via a cron job, but we'll simulate it for now.
+        db_addiction.current_streak += 1
+        db.commit()
+        db.refresh(db_addiction)
+    return db_addiction
 
 @app.post("/habits", response_model=schemas.Habit)
 def create_habit(habit: schemas.HabitCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):

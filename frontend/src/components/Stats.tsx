@@ -27,16 +27,8 @@ export default function Stats() {
           })));
         }
 
-        // Keep mock data for the 7-day trend since there is no time-series endpoint yet
-        setData([
-          { day: 'Mon', hours: 2.5 },
-          { day: 'Tue', hours: 3.8 },
-          { day: 'Wed', hours: 1.5 },
-          { day: 'Thu', hours: 4.2 },
-          { day: 'Fri', hours: 3.0 },
-          { day: 'Sat', hours: 5.5 },
-          { day: 'Sun', hours: 2.0 },
-        ]);
+        // Set empty array if no real time-series data
+        setData([]);
       } catch (e) {
         setInsights("Could not load AI insights.");
       }
@@ -103,45 +95,53 @@ export default function Stats() {
           <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
             <BarChart2 size={20} className="text-purple-400" /> Subject Distribution (Minutes)
           </h3>
-          <div className="h-[200px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={subjectData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
-                <XAxis dataKey="name" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  cursor={{ fill: '#ffffff0a' }}
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                  itemStyle={{ color: '#c7d2fe' }}
-                />
-                <Bar dataKey="value" fill="#a855f7" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-[200px] w-full flex items-center justify-center">
+            {subjectData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={subjectData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
+                  <XAxis dataKey="name" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    cursor={{ fill: '#ffffff0a' }}
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                    itemStyle={{ color: '#c7d2fe' }}
+                  />
+                  <Bar dataKey="value" fill="#a855f7" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-slate-400">Start tracking to see insights</div>
+            )}
           </div>
         </div>
       </div>
 
       <div className="bg-[#0b0f19]/80 border border-white/5 rounded-3xl p-6 flex flex-col h-full">
         <h3 className="text-lg font-bold text-white mb-6">Study Time Trend (Hours)</h3>
-        <div className="flex-1 min-h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#818cf8" stopOpacity={0.5}/>
-                  <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
-              <XAxis dataKey="day" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                itemStyle={{ color: '#c7d2fe' }}
-              />
-              <Area type="monotone" dataKey="hours" stroke="#818cf8" strokeWidth={4} fillOpacity={1} fill="url(#colorHours)" />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="flex-1 min-h-[300px] w-full flex items-center justify-center">
+          {data.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.5}/>
+                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
+                <XAxis dataKey="day" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                  itemStyle={{ color: '#c7d2fe' }}
+                />
+                <Area type="monotone" dataKey="hours" stroke="#818cf8" strokeWidth={4} fillOpacity={1} fill="url(#colorHours)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-slate-400">Start tracking to see insights</div>
+          )}
         </div>
       </div>
     </div>

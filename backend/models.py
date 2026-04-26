@@ -72,3 +72,14 @@ class Habit(Base):
     last_completed = Column(DateTime, nullable=True)
     
     user = relationship("User", back_populates="habits")
+
+class Addiction(Base):
+    __tablename__ = "addictions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String)
+    reduction_goal = Column(String, nullable=True)
+    current_streak = Column(Integer, default=0)
+    last_relapse = Column(DateTime, nullable=True)
+    
+    user = relationship("User")

@@ -24,8 +24,8 @@ export default function Signup() {
     <div className="flex items-center justify-center min-h-screen bg-[#030712] relative overflow-hidden">
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
-      
-      <motion.div 
+
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md p-8 space-y-8 glass-panel rounded-3xl z-10"
@@ -39,7 +39,7 @@ export default function Signup() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300">Email address</label>
-              <input 
+              <input
                 type="email" required
                 value={email} onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 mt-1 bg-[#0b0f19]/80 border border-white/10 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-white placeholder-slate-500"
@@ -48,7 +48,7 @@ export default function Signup() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300">Password</label>
-              <input 
+              <input
                 type="password" required
                 value={password} onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 mt-1 bg-[#0b0f19]/80 border border-white/10 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-white placeholder-slate-500"
@@ -56,7 +56,7 @@ export default function Signup() {
               />
             </div>
           </div>
-          <button 
+          <button
             type="submit"
             className="w-full py-3 px-4 text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transform transition-all hover:-translate-y-0.5"
           >

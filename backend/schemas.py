@@ -84,3 +84,18 @@ class Habit(HabitBase):
     last_completed: Optional[datetime] = None
     class Config:
         from_attributes = True
+
+class AddictionBase(BaseModel):
+    title: str
+    reduction_goal: Optional[str] = None
+
+class AddictionCreate(AddictionBase):
+    pass
+
+class Addiction(AddictionBase):
+    id: int
+    user_id: int
+    current_streak: int
+    last_relapse: Optional[datetime] = None
+    class Config:
+        from_attributes = True

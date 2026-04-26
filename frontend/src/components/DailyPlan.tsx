@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, CheckCircle2, Clock, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import api from '../api';
 
 export default function DailyPlan() {
