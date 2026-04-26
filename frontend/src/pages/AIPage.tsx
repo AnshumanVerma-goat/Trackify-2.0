@@ -23,7 +23,8 @@ export default function AIPage() {
     setLoading(true);
     try {
       const res = await api.post('/ai/chat', { message: textToSend });
-      setMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
+      const botReply = res.data?.reply || res.data?.response || res.data?.message || res.data?.text || "Hmm... I couldn't generate a response.";
+      setMessages(prev => [...prev, { sender: 'ai', text: botReply }]);
     } catch (err) {
       setMessages(prev => [...prev, { sender: 'ai', text: 'Sorry, I am having trouble connecting.' }]);
     } finally {
