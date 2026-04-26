@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 api.interceptors.request.use((config) => {
@@ -30,7 +30,7 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
-    
+
     // Standardize error message for frontend
     const message = error.response?.data?.message || error.response?.data?.detail || error.message || 'An error occurred';
     return Promise.reject(new Error(message));
