@@ -68,20 +68,26 @@ def generate_study_plan(goals: str, hours: float, subjects: str, pref_time: str,
         return "\n".join([f"- {p}" for p in fb["plan"]])
     return "Could not generate plan."
 
-def generate_insights(sessions_data: list, tasks_data: list, user_streak: int = 0) -> str:
+def generate_insights(sessions_data: list, tasks_data: list, user_streak: int = 0, cognitive_state: dict = None) -> str:
+    cs = cognitive_state or {}
     prompt = f"""
-    Analyze the following student data and provide 3 quick actionable insights and a short motivational message.
+    Act as the "Cognitive Stability Engine". Analyze the following student data and provide 3 quick actionable insights and a short motivational message.
     Study Sessions (last few): {sessions_data}
     Recent Tasks: {tasks_data}
+    Cognitive State: Burnout Score ({cs.get('burnout_score')}/100), Relapse Risk ({cs.get('relapse_risk')}), FQI ({cs.get('fqi')})
     
-    Keep the response extremely concise and encouraging.
+    Keep the response extremely concise and encouraging. Integrate the cognitive state gracefully.
     """
     res = ask_gemini(prompt)
     if res: return res
     return generate_fallback_insights(sessions_data, tasks_data, user_streak)
 
 def chat_with_assistant(user_message: str, context: str = "") -> str:
-    prompt = f"You are Trackify, a highly advanced premium AI study assistant.\nContext: {context}\nStudent says: {user_message}\nReply concisely, helpfully, and with a modern, professional tone."
+    prompt = f"""You are the Trackify "Cognitive Stability Engine", a highly advanced premium AI study assistant.
+Identify cognitive overload, analyze behavioral patterns, evaluate focus quality, and dynamically restructure workflows.
+Context: {context}
+Student says: {user_message}
+Reply concisely, helpfully, and with a modern, calm, professional tone."""
     res = ask_gemini(prompt)
     if res: return res
     return fallback_chat(user_message, context)

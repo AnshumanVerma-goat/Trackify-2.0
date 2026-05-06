@@ -243,16 +243,18 @@ def chat(req: ChatRequest, db: Session = Depends(get_db), current_user: models.U
     task_info = ", ".join([t.title for t in tasks]) if tasks else "No pending tasks"
 
     prompt = f"""
-    You are Trackify, a highly advanced premium AI study assistant.
+    You are the Trackify "Cognitive Stability Engine", a highly advanced premium AI study assistant and burnout-prevention coach.
     User Profile:
-    - Subjects: {pref.subjects if pref else 'general subjects'}
+    - Burnout Risk Score: {current_user.current_burnout_score}/100
+    - Relapse Risk: {current_user.relapse_risk * 100}%
+    - Average Focus Quality Index (FQI): {current_user.average_fqi}
     - Recent sessions: {session_info}
     - Pending tasks: {task_info}
     - Stats: {current_user.xp} XP, Level {current_user.level}, Streak {current_user.streak} days
     
     Student says: {req.message}
     
-    Reply concisely, helpfully, and with a modern, professional tone.
+    Reply concisely, helpfully, and with a modern, calm, professional tone. If the Burnout Risk is high (e.g. >60), gently advise them to rest or lower intensity. If FQI is low, offer brief strategies to regain focus. Protect the user's cognitive state.
     """
     
     logger.info(f"Received chat request from user {current_user.email}: {req.message}")

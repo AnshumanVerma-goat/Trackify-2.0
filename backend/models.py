@@ -9,11 +9,16 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     
-    # Gamification
+    # Gamification & Cognitive
     xp = Column(Integer, default=0)
     level = Column(Integer, default=1)
     streak = Column(Integer, default=0)
     last_login = Column(DateTime, nullable=True)
+    
+    # Cognitive Engine
+    current_burnout_score = Column(Float, default=0.0)
+    average_fqi = Column(Float, default=75.0)
+    relapse_risk = Column(Float, default=0.0)
     
     daily_goal_hours = Column(Float, default=2.0)
     weekly_goal_hours = Column(Float, default=10.0)
@@ -60,6 +65,11 @@ class StudySession(Base):
     start_time = Column(DateTime, default=datetime.datetime.utcnow)
     focus_score = Column(Integer, nullable=True) # 1-10
     focus_mode = Column(String, default="Deep Work")
+    
+    # Cognitive Engine
+    fqi = Column(Integer, nullable=True) # 0-100 Focus Quality Index
+    interruptions = Column(Integer, default=0)
+    completed_successfully = Column(Boolean, default=True)
     
     user = relationship("User", back_populates="sessions")
 

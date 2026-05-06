@@ -15,8 +15,12 @@ export default function Signup() {
       const loginRes = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', loginRes.data.access_token);
       navigate('/onboarding');
-    } catch (error) {
-      alert('Signup failed');
+    } catch (error: any) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        alert(error.response.data.detail);
+      } else {
+        alert('Signup failed. Please try again.');
+      }
     }
   };
 

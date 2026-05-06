@@ -14,6 +14,11 @@ class User(UserBase):
     level: int = 1
     streak: int = 0
     last_login: Optional[datetime] = None
+    
+    current_burnout_score: float = 0.0
+    average_fqi: float = 75.0
+    relapse_risk: float = 0.0
+    
     class Config:
         from_attributes = True
 
@@ -60,6 +65,8 @@ class StudySessionBase(BaseModel):
     duration_minutes: int
     focus_score: Optional[int] = None
     focus_mode: str = "Deep Work"
+    interruptions: int = 0
+    completed_successfully: bool = True
 
 class StudySessionCreate(StudySessionBase):
     pass
@@ -68,6 +75,7 @@ class StudySession(StudySessionBase):
     id: int
     user_id: int
     start_time: datetime
+    fqi: Optional[int] = None
     class Config:
         from_attributes = True
 
